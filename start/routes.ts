@@ -20,25 +20,9 @@
 
 import Route from '@ioc:Adonis/Core/Route'
 
-Route.get('/', async () => {
-  return { hello: 'world' }
-})
+// Auth Routes — Public (no login required)
+Route.post('/register', 'AuthController.register')
+Route.post('/login',    'AuthController.login')
 
-Route.group(() => {
-
-  Route.post("register", "AuthController.register");
-  Route.post("login", "AuthController.login");
-  
-      Route.group( () => {
-      Route.get("profiles/:id", "ProfilesController.show");
-      Route.put("profiles/update", "ProfilesController.update");
-      Route.post("profiles", "ProfilesController.store");
-      }).middleware("auth:api");
-
-      Route.group(() => {
-        Route.post("profiles/delete", "ProfilesController.destroy"),
-        Route.get("profiles", "ProfilesController.show")
-      }).middleware(["auth", "admin"])
-      
-      
-}).prefix("api");
+// Auth Routes — Protected (login required)
+Route.post('/logout', 'AuthController.logout').middleware('auth')
