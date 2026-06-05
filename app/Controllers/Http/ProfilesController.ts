@@ -1,67 +1,90 @@
-import { HttpContextContract } from "@ioc:Adonis/Core/HttpContext";
-import Database from "@ioc:Adonis/Lucid/Database";
-import Profile from "App/Models/Profile";
-import Role from "App/Models/Role";
-import User from "App/Models/User";
+import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import Profile from 'App/Models/Profile'
+import CreateProfileValidator from 'App/Validators/CreateProfileValidator'
+import UpdateProfileValidator from 'App/Validators/UpdateProfileValidator'
+import DeleteProfileValidator from 'App/Validators/DeleteProfileValidator'
 
 export default class ProfilesController {
 
-    public async index({ request, auth}: HttpContextContract)
-    {
-        console.log('abcbccccc')
-        const page = request.input('page', 1)
-        const users = await User.query().preload('profile').paginate(page, 3)
-        return users
+  public async show({ auth, response }: HttpContextContract) {
+    const user = auth.user!
+
+    const profile = await Profile.findByOrFail('user_id', user.id)
+
+    return response.ok({
+      name: profile.name,
+      email: user.email,
+      gender: profile.gender,
+      date_of_birth: profile.dateOfBirth,
+    })
+  }
+
+  public async create({ auth, request, response }: HttpContextContract) {
+    const user = auth.user!
+
+    const existingProfile = await Profile.findBy('user_id', user.id)
+    if (existingProfile) {
+      return response.conflict({
+        message: 'Profile already exists. Use PUT /user/profile to update it.',
+      })
     }
-    
-    public async show({ request, auth, params}: HttpContextContract)
-    {
-        try {
-            console.log(params, 'abbcccc')
-            const user = await auth.authenticate()            
-            await user.load('profile');
-            return user;
-            
-        } catch (error) {
-        	console.log(error)
-        }
+
+    const payload = await request.validate(CreateProfileValidator)
+
+    const profile = await Profile.create({
+      userId: user.id,
+      name: payload.name,
+      mobile: payload.mobile,
+      gender: payload.gender,
+      dateOfBirth: payload.date_of_birth.toISODate()!,
+    })
+
+    return response.created({
+      message: 'Profile created successfully',
+      profile,
+    })
+  }
+
+  public async update({ auth, request, response }: HttpContextContract) {
+    const user = auth.user!
+
+    const profile = await Profile.findByOrFail('user_id', user.id)
+
+    const payload = await request.validate(UpdateProfileValidator)
+
+    profile.merge({
+      name: payload.name,
+      mobile: payload.mobile,
+      gender: payload.gender,
+      dateOfBirth: payload.date_of_birth.toISODate()!,
+    })
+
+    await profile.save()
+
+    return response.ok({
+      message: 'Profile updated successfully',
+      profile,
+    })
+  }
+
+  public async destroy({ auth, request, response }: HttpContextContract) {
+    const user = auth.user!
+
+    const payload = await request.validate(DeleteProfileValidator)
+
+    const profile = await Profile.findByOrFail('user_id', user.id)
+
+    if (profile.mobile !== payload.mobile) {
+      return response.badRequest({
+        message: 'Mobile number does not match. Account not deleted.',
+      })
     }
-    
-    public async update({ auth, request, params}: HttpContextContract)
-    {
-        const profile = await Profile.find(params.id);
-        if (profile) {
-            profile.first_name = request.input('first_name');
-            profile.last_name = request.input('last_name');
-            profile.dob = request.input('dob');
-            profile.role = request.input('role');
-            
-            if (await profile.save()) {
-            	return profile
-        	}
-        	return;
-        }
-        return;
-    }
-    
-    public async store({ auth, request, response}: HttpContextContract)
-    {
-        const user = await auth.authenticate();
-        console.log(user)
-        const profile = new Profile();
-        profile.user_id = user.$attributes.id
-        profile.first_name = request.input('first_name');
-        profile.last_name = request.input('last_name');
-        profile.dob = request.input('dob');
-        profile.role = request.input('role');
-        await profile.save()
-        return profile
-    }
-    
-    public async destroy({response, auth, request, params}: HttpContextContract)
-    {
-        const user = await auth.authenticate();
-        const profile = await Profile.query().where('id', request.input('id')).delete();
-        return response.json({message:"Deleted successfully"})
-    }
+
+    await profile.delete()
+    await user.delete()
+
+    return response.ok({
+      message: 'Account and profile deleted successfully',
+    })
+  }
 }

@@ -20,25 +20,17 @@
 
 import Route from '@ioc:Adonis/Core/Route'
 
-Route.get('/', async () => {
-  return { hello: 'world' }
-})
+// Auth Routes — Public
+Route.post('/register', 'AuthController.register')
+Route.post('/login',    'AuthController.login')
 
+// Auth Routes — Protected
+Route.post('/logout', 'AuthController.logout').middleware('auth')
+
+// Profile Routes — All Protected
 Route.group(() => {
-
-  Route.post("register", "AuthController.register");
-  Route.post("login", "AuthController.login");
-  
-      Route.group( () => {
-      Route.get("profiles/:id", "ProfilesController.show");
-      Route.put("profiles/update", "ProfilesController.update");
-      Route.post("profiles", "ProfilesController.store");
-      }).middleware("auth:api");
-
-      Route.group(() => {
-        Route.post("profiles/delete", "ProfilesController.destroy"),
-        Route.get("profiles", "ProfilesController.show")
-      }).middleware(["auth", "admin"])
-      
-      
-}).prefix("api");
+  Route.get(    '/profile', 'ProfilesController.show')
+  Route.post(   '/profile', 'ProfilesController.create')
+  Route.put(    '/profile', 'ProfilesController.update')
+  Route.delete( '/profile', 'ProfilesController.destroy')
+}).prefix('/user').middleware('auth')
