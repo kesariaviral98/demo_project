@@ -1,5 +1,6 @@
 import { schema, rules, CustomMessages } from '@ioc:Adonis/Core/Validator'
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import { DateTime } from 'luxon'
 
 export default class CreateProfileValidator {
   constructor(protected ctx: HttpContextContract) {}
@@ -13,7 +14,10 @@ export default class CreateProfileValidator {
       rules.regex(/^[0-9]{10}$/),
     ]),
     gender: schema.enum(['MALE', 'FEMALE'] as const),
-    date_of_birth: schema.date({ format: 'yyyy-MM-dd' }),
+    date_of_birth: schema.date({ format: 'yyyy-MM-dd' }, [
+      rules.before(DateTime.now().minus({ years: 18 })),
+      rules.after(DateTime.now().minus({ years: 100 })),
+    ]),
   })
 
   public messages: CustomMessages = {
@@ -26,5 +30,7 @@ export default class CreateProfileValidator {
     'gender.enum'            : 'Gender must be either MALE or FEMALE',
     'date_of_birth.required' : 'Date of birth is required',
     'date_of_birth.date'     : 'Date of birth must be a valid date in YYYY-MM-DD format',
+    'date_of_birth.before'   : 'You must be at least 18 years old',
+    'date_of_birth.after'    : 'Age cannot exceed 100 years',
   }
 }
