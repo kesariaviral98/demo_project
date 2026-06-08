@@ -34,3 +34,15 @@ Route.group(() => {
   Route.put(    '/profile', 'ProfilesController.update')
   Route.delete( '/profile', 'ProfilesController.destroy')
 }).prefix('/user').middleware('auth')
+
+// Admin Routes — Read (both roles)
+Route.group(() => {
+  Route.get('/users',     'AdminsController.index')
+  Route.get('/users/:id', 'AdminsController.show')
+}).prefix('/admin').middleware(['auth', 'role:main_admin,tech_support'])
+
+// Admin Routes — CRUD (main_admin only)
+Route.group(() => {
+  Route.put(    '/users/:id', 'AdminsController.update')
+  Route.delete( '/users/:id', 'AdminsController.destroy')
+}).prefix('/admin').middleware(['auth', 'role:main_admin'])
