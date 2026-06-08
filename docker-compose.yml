@@ -3,8 +3,8 @@ services:
     image: postgres:16-alpine
     container_name: user_profile_pg
     environment:
-      POSTGRES_DB: lucid
-      POSTGRES_USER: lucid
-      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: ${PG_DB_NAME}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
     ports:
       - "5432:5432"
