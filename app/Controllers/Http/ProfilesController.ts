@@ -1,4 +1,5 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
+import { DateTime } from 'luxon'
 import Profile from 'App/Models/Profile'
 import CreateProfileValidator from 'App/Validators/CreateProfileValidator'
 import UpdateProfileValidator from 'App/Validators/UpdateProfileValidator'
@@ -9,7 +10,7 @@ export default class ProfilesController {
   public async show({ auth, response }: HttpContextContract) {
     const user = auth.user!
 
-    const profile = await Profile.findByOrFail('user_id', user.id)
+    const profile = await Profile.query().where('user_id', user.id).whereNull('deleted_at').firstOrFail()
 
     return response.ok({
       name: profile.name,
@@ -22,7 +23,7 @@ export default class ProfilesController {
   public async create({ auth, request, response }: HttpContextContract) {
     const user = auth.user!
 
-    const existingProfile = await Profile.findBy('user_id', user.id)
+    const existingProfile = await Profile.query().where('user_id', user.id).whereNull('deleted_at').first()
     if (existingProfile) {
       return response.conflict({
         message: 'Profile already exists. Use PUT /user/profile to update it.',
@@ -48,7 +49,7 @@ export default class ProfilesController {
   public async update({ auth, request, response }: HttpContextContract) {
     const user = auth.user!
 
-    const profile = await Profile.findByOrFail('user_id', user.id)
+    const profile = await Profile.query().where('user_id', user.id).whereNull('deleted_at').firstOrFail()
 
     const payload = await request.validate(UpdateProfileValidator)
 
@@ -72,7 +73,7 @@ export default class ProfilesController {
 
     const payload = await request.validate(DeleteProfileValidator)
 
-    const profile = await Profile.findByOrFail('user_id', user.id)
+    const profile = await Profile.query().where('user_id', user.id).whereNull('deleted_at').firstOrFail()
 
     if (profile.mobile !== payload.mobile) {
       return response.badRequest({
@@ -80,8 +81,11 @@ export default class ProfilesController {
       })
     }
 
-    await profile.delete()
-    await user.delete()
+    profile.deletedAt = DateTime.now()
+    await profile.save()
+
+    user.deletedAt = DateTime.now()
+    await user.save()
 
     return response.ok({
       message: 'Account and profile deleted successfully',
