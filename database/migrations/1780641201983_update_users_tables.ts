@@ -1,7 +1,8 @@
 import BaseSchema from '@ioc:Adonis/Lucid/Schema'
+import User from 'App/Models/User'
 
 export default class extends BaseSchema {
-  protected tableName = 'users'
+  protected tableName = User.table
 
   public async up() {
     this.schema.alterTable(this.tableName, (table) => {

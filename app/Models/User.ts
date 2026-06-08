@@ -7,9 +7,6 @@ import Role from './Role'
 
 export default class User extends BaseModel {
 
-  @column()
-  public role_id: number
-
   @manyToMany(() => Role)
   public role: ManyToMany<typeof Role>
 
@@ -20,9 +17,6 @@ export default class User extends BaseModel {
 
   @column({ isPrimary: true })
   public id: number
-
-  @column()
-  public username: string;
 
   @column()
   public email: string
