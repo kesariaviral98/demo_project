@@ -21,8 +21,10 @@
 import Route from '@ioc:Adonis/Core/Route'
 
 // Auth Routes — Public (no login required)
-Route.post('/register', 'AuthController.register')
-Route.post('/login',    'AuthController.login')
+Route.group(() => {
+  Route.post('/register', 'AuthController.register')
+  Route.post('/login',    'AuthController.login')
+}).middleware('rateLimiter')
 
 // Auth Routes — Protected (login required)
 Route.post('/logout', 'AuthController.logout').middleware('auth')
