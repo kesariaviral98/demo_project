@@ -11,6 +11,11 @@ export default class UpdateProfileValidator {
     ]),
     mobile: schema.string({ trim: true }, [
       rules.regex(/^[0-9]{10}$/),
+      rules.unique({
+        table: 'profiles',
+        column: 'mobile',
+        whereNot: { user_id: this.ctx.auth.user!.id },
+      }),
     ]),
     gender: schema.enum(['MALE', 'FEMALE'] as const),
     date_of_birth: schema.date({ format: 'yyyy-MM-dd' }),
@@ -22,6 +27,7 @@ export default class UpdateProfileValidator {
     'name.maxLength'         : 'Name cannot exceed 30 characters',
     'mobile.required'        : 'Mobile number is required',
     'mobile.regex'           : 'Mobile number must be exactly 10 digits',
+    'mobile.unique'          : 'Mobile number is already in use',
     'gender.required'        : 'Gender is required',
     'gender.enum'            : 'Gender must be either MALE or FEMALE',
     'date_of_birth.required' : 'Date of birth is required',
