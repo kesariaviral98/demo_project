@@ -1,16 +1,16 @@
 import { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import { DateTime } from 'luxon'
-import Profile from 'App/Models/Profile'
 import CreateProfileValidator from 'App/Validators/CreateProfileValidator'
 import UpdateProfileValidator from 'App/Validators/UpdateProfileValidator'
 import DeleteProfileValidator from 'App/Validators/DeleteProfileValidator'
+import ProfileService from 'App/Services/ProfileService'
+
+const profileService = new ProfileService()
 
 export default class ProfilesController {
 
   public async show({ auth, response }: HttpContextContract) {
     const user = auth.user!
-
-    const profile = await Profile.query().where('user_id', user.id).whereNull('deleted_at').firstOrFail()
+    const profile = await profileService.getProfile(user.id)
 
     return response.ok({
       name: profile.name,
@@ -23,8 +23,7 @@ export default class ProfilesController {
   public async create({ auth, request, response }: HttpContextContract) {
     const user = auth.user!
 
-    const existingProfile = await Profile.query().where('user_id', user.id).whereNull('deleted_at').first()
-    if (existingProfile) {
+    if (await profileService.profileExists(user.id)) {
       return response.conflict({
         message: 'Profile already exists. Use PUT /user/profile to update it.',
       })
@@ -32,8 +31,7 @@ export default class ProfilesController {
 
     const payload = await request.validate(CreateProfileValidator)
 
-    const profile = await Profile.create({
-      userId: user.id,
+    const profile = await profileService.createProfile(user.id, {
       name: payload.name,
       mobile: payload.mobile,
       gender: payload.gender,
@@ -48,19 +46,14 @@ export default class ProfilesController {
 
   public async update({ auth, request, response }: HttpContextContract) {
     const user = auth.user!
-
-    const profile = await Profile.query().where('user_id', user.id).whereNull('deleted_at').firstOrFail()
-
     const payload = await request.validate(UpdateProfileValidator)
 
-    profile.merge({
+    const profile = await profileService.updateProfile(user.id, {
       name: payload.name,
       mobile: payload.mobile,
       gender: payload.gender,
       dateOfBirth: payload.date_of_birth.toISODate()!,
     })
-
-    await profile.save()
 
     return response.ok({
       message: 'Profile updated successfully',
@@ -70,22 +63,15 @@ export default class ProfilesController {
 
   public async destroy({ auth, request, response }: HttpContextContract) {
     const user = auth.user!
-
     const payload = await request.validate(DeleteProfileValidator)
 
-    const profile = await Profile.query().where('user_id', user.id).whereNull('deleted_at').firstOrFail()
+    const deleted = await profileService.deleteProfile(user.id, payload.mobile, user)
 
-    if (profile.mobile !== payload.mobile) {
+    if (!deleted) {
       return response.badRequest({
         message: 'Mobile number does not match. Account not deleted.',
       })
     }
-
-    profile.deletedAt = DateTime.now()
-    await profile.save()
-
-    user.deletedAt = DateTime.now()
-    await user.save()
 
     return response.ok({
       message: 'Account and profile deleted successfully',
