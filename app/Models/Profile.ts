@@ -29,6 +29,9 @@ export default class Profile extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt!: DateTime
 
+  @column.dateTime()
+  public deletedAt: DateTime | null = null
+
   @belongsTo(() => User)
   public user!: BelongsTo<typeof User>
 }
