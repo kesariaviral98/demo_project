@@ -5,6 +5,11 @@ import { DateTime } from 'luxon'
 export default class CreateProfileValidator {
   constructor(protected ctx: HttpContextContract) {}
 
+  public refs = schema.refs({
+    minDob: DateTime.now().minus({ years: 18 }),
+    maxDob: DateTime.now().minus({ years: 100 }),
+  })
+
   public schema = schema.create({
     name: schema.string({ trim: true }, [
       rules.minLength(3),
@@ -12,11 +17,12 @@ export default class CreateProfileValidator {
     ]),
     mobile: schema.string({ trim: true }, [
       rules.regex(/^[0-9]{10}$/),
+      rules.uniqueMobile(),
     ]),
     gender: schema.enum(['MALE', 'FEMALE'] as const),
     date_of_birth: schema.date({ format: 'yyyy-MM-dd' }, [
-      rules.before(DateTime.now().minus({ years: 18 })),
-      rules.after(DateTime.now().minus({ years: 100 })),
+      rules.before(this.refs.minDob),
+      rules.after(this.refs.maxDob),
     ]),
   })
 
